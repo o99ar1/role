@@ -2,51 +2,57 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use App\Filament\Resources\UserResource\Pages;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-
-    public static function getNavigationLabel(): string
-    {
-        return 'Users';
-    }
+    protected static ?string $navigationLabel = 'Users';
+    protected static ?string $modelLabel = 'User';
+    protected static ?string $pluralModelLabel = 'Users';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
+        return $form->schema([
+            Forms\Components\TextInput::make('name')
+                ->label('Full Name')
+                ->required()
+                ->maxLength(255)
+                ->placeholder('Enter user full name'),
 
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->unique(ignoreRecord: true),
+            Forms\Components\TextInput::make('email')
+                ->label('Email Address')
+                ->email()
+                ->required()
+                ->unique(ignoreRecord: true)
+                ->placeholder('user@example.com'),
 
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->dehydrateStateUsing(fn ($state) => bcrypt($state)),
+            Forms\Components\TextInput::make('password')
+                ->label('Password')
+                ->password()
+                ->required(fn ($livewire) => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
+                ->dehydrated(fn ($state) => filled($state))
+                ->dehydrateStateUsing(fn ($state) => bcrypt($state))
+                ->autocomplete('new-password')
+                ->placeholder('********'),
 
-                Forms\Components\Select::make('roles')
-                    ->label('Roles')
-                    ->relationship('roles', 'name')
-                    ->multiple()
-                    ->preload()
-                    ->required(),
-            ]);
+            Forms\Components\Select::make('roles')
+                ->label('Assign Roles')
+                ->relationship('roles', 'name')
+                ->multiple()
+                ->preload()
+                ->native(false)
+                ->searchable()
+                ->required(),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -55,30 +61,39 @@ class UserResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Full Name')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('email')
-                    ->label('Email Address')
-                    ->searchable(),
+                    ->label('Email')
+                    ->searchable()
+                    ->toggleable(),
 
-                Tables\Columns\TextColumn::make('roles.name')
+                Tables\Columns\BadgeColumn::make('roles.name')
                     ->label('Roles')
-                    ->badge()
-                    ->separator(', '),
+                    ->colors([
+                        'primary' => 'admin',
+                        'info' => 'user',
+                    ])
+                    ->separator(', ')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created At')
-                    ->dateTime()
-                    ->sortable(),
+                    ->label('Created')
+                    ->dateTime('M d, Y')
+                    ->sortable()
+                    ->toggleable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Edit User'),
+                Tables\Actions\DeleteAction::make()->tooltip('Delete User'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
